@@ -49,6 +49,12 @@ def item_catalogue():
             for k in scoring.ALL_SCORED_ITEMS
         ],
         "caregiver_item": scoring.CAREGIVER_FLAG_ITEM,
+        "caregiver_domain_items": scoring.DOMAIN_ITEMS["caregiver"],
+        "caregiver_domain_notice": (
+            "This section (Domain 6) should be answered by the CAREGIVER, "
+            "not the patient. If the patient does not have a caregiver, "
+            "leave these questions blank."
+        ),
         "domains": scoring.DOMAIN_LABELS,
         "cutoffs": {"p25": scoring.P25_CUTOFF, "p75": scoring.P75_CUTOFF},
     }
@@ -60,12 +66,23 @@ def score_single(payload: SinglePatientRequest):
     return {
         "total_score": result.total_score,
         "severity": result.severity,
+        "category_label": result.category_label,
+        "interpretation": result.interpretation,
+        "suggested_action": result.suggested_action,
         "domain_scores": result.domain_scores,
         "has_caregiver": result.has_caregiver,
         "age": result.age,
         "flags": [asdict(f) for f in result.flags],
         "notes": result.notes,
     }
+
+
+@app.get("/api/interpretations")
+def interpretations():
+    """Static reference table (Low/Moderate/High -> interpretation +
+    suggested action), so the frontend can render it as a standalone
+    legend as well as inline with a specific patient's result."""
+    return scoring.SEVERITY_INTERPRETATION
 
 
 @app.get("/api/template")
@@ -77,7 +94,7 @@ def download_template():
     # one worked example row so users can see the expected value format
     example = {
         "id": "1001",
-        "dob": "5/12/1968",
+        "dob": "12/05/1968",  # DD/MM/YYYY = 12 May 1968
         "dom2_insurance": "no",
         "dom2_oope": "yes",
         "dom2_work_fear": "sometimes",

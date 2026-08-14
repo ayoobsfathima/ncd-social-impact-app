@@ -130,6 +130,69 @@ P75_CUTOFF = 39.9
 
 MISSING_IMPUTE_THRESHOLD = 0.02  # 2%
 
+# ---------------------------------------------------------------------------
+# Severity interpretation & suggested action
+# ---------------------------------------------------------------------------
+# Clinical wording supplied for the app; not derived from the R script.
+# Keyed by the same "Low" / "Moderate" / "High" strings severity_band()
+# returns, so callers can look this up directly off a ScoreResult.
+
+SEVERITY_INTERPRETATION = {
+    "Low": {
+        "category_label": "Low social impact",
+        "interpretation": (
+            "Social impact appears limited at present, with relatively fewer "
+            "disruptions to economic, social, psychological, physical or "
+            "caregiving aspects of life."
+        ),
+        "suggested_action": (
+            "Routine support and monitoring. Reinforce treatment adherence, "
+            "healthy lifestyle practices, self-management and available social "
+            "support. Reassess periodically or if the patient's circumstances "
+            "change."
+        ),
+    },
+    "Moderate": {
+        "category_label": "Moderate social impact",
+        "interpretation": (
+            "Indicates a meaningful social burden that may be affecting one or "
+            "more areas of daily life and may benefit from additional support."
+        ),
+        "suggested_action": (
+            "Targeted supportive intervention. Identify which domains are "
+            "contributing most to the score, provide brief counselling/"
+            "self-management support, strengthen family/social support, and "
+            "refer to appropriate services for identified social or "
+            "psychological needs."
+        ),
+    },
+    "High": {
+        "category_label": "High social impact",
+        "interpretation": (
+            "Indicates a substantial multidimensional burden with potentially "
+            "important effects on daily functioning, wellbeing, finances, "
+            "relationships or caregiver needs."
+        ),
+        "suggested_action": (
+            "Comprehensive assessment and active intervention. Review the "
+            "contributing domains, assess priority psychosocial and "
+            "socioeconomic needs, involve the caregiver where appropriate, and "
+            "facilitate referral to relevant medical, psychological, "
+            "social-work, rehabilitation or financial/community support "
+            "services. Arrange follow-up to assess change."
+        ),
+    },
+}
+
+
+def get_interpretation(severity: Optional[str]) -> Optional[dict]:
+    """Returns {category_label, interpretation, suggested_action} for a
+    severity band, or None if severity is None (e.g. score couldn't be
+    computed)."""
+    if severity is None:
+        return None
+    return SEVERITY_INTERPRETATION.get(severity)
+
 
 # ---------------------------------------------------------------------------
 # Value normalisation / classification
@@ -233,12 +296,20 @@ def classify_item(item: str, raw):
 # ---------------------------------------------------------------------------
 
 def parse_dob(raw) -> Optional[date]:
+    """
+    Accepts DD/MM/YYYY (and DD-MM-YYYY) as the expected slash/dash format,
+    plus ISO YYYY-MM-DD (what HTML <input type="date"> always submits,
+    regardless of the locale it displays). The US-style MM/DD/YYYY format
+    is intentionally NOT accepted: for dates like 5/12/1968 it's ambiguous
+    with DD/MM/YYYY and silently produces the wrong date, so rather than
+    guessing we require the DD/MM/YYYY convention consistently.
+    """
     if _is_blank(raw):
         return None
     if isinstance(raw, date):
         return raw
     s = str(raw).strip()
-    for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%m-%d-%Y"):
+    for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d"):
         try:
             return datetime.strptime(s, fmt).date()
         except ValueError:
@@ -288,6 +359,9 @@ class ScoreResult:
     age: Optional[int] = None
     flags: list = field(default_factory=list)
     notes: list = field(default_factory=list)
+    interpretation: Optional[str] = None
+    suggested_action: Optional[str] = None
+    category_label: Optional[str] = None
 
 
 def severity_band(score: float) -> str:
@@ -374,10 +448,14 @@ def score_single(answers: dict, dob_raw=None, as_of: Optional[date] = None) -> S
                               "Caregiver status unknown; defaulted to 'no caregiver' weighting. Verify with the patient."))
 
     total, severity, domain_scores = score_from_codes(codes, has_caregiver)
+    interp = get_interpretation(severity)
 
     return ScoreResult(
         total_score=total, severity=severity, domain_scores=domain_scores,
         has_caregiver=has_caregiver, age=age, flags=flags, notes=notes,
+        interpretation=interp["interpretation"] if interp else None,
+        suggested_action=interp["suggested_action"] if interp else None,
+        category_label=interp["category_label"] if interp else None,
     )
 
 
@@ -520,6 +598,8 @@ def score_batch(rows: list[dict]) -> tuple[list[dict], list[RowFlag], dict]:
                                   "Caregiver status unknown; defaulted to 'no caregiver' weighting."))
         total, severity, domain_scores = score_from_codes(rc, has_caregiver)
 
+        interp = get_interpretation(severity)
+
         out = dict(row)
         out["age"] = ages[i]
         out["has_caregiver"] = has_caregiver
@@ -527,6 +607,8 @@ def score_batch(rows: list[dict]) -> tuple[list[dict], list[RowFlag], dict]:
             out[f"domain_{d}_score"] = domain_scores.get(d, 0.0)
         out["Total_Social_Impact"] = total
         out["Severity"] = severity
+        out["Interpretation"] = interp["interpretation"] if interp else ""
+        out["Suggested_Action"] = interp["suggested_action"] if interp else ""
         result_rows.append(out)
 
     return result_rows, flags, column_summary
