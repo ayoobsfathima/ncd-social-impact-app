@@ -10,35 +10,52 @@ const bandColor = (severity) => {
 
 export default function ScoreDial({ score, severity }) {
   const clamped = Math.max(0, Math.min(100, score ?? 0));
-  const trackTop = 20;
-  const trackBottom = 220;
+  const trackTop = 28;
+  const trackBottom = 268;
   const trackHeight = trackBottom - trackTop;
   const y = (pct) => trackBottom - (pct / 100) * trackHeight;
   const markerY = y(clamped);
   const color = bandColor(severity);
+  const tubeX = 44;
+  const tubeWidth = 26;
+  const bulbCx = tubeX + tubeWidth / 2;
+  const bulbCy = 292;
+  const bulbR = 24;
 
   return (
-    <svg width="220" height="256" viewBox="0 0 220 256" role="img"
+    <svg width="200" height="332" viewBox="0 0 200 332" role="img"
       aria-label={`Total social impact score ${score ?? "—"} out of 100, ${severity ?? "unscored"} severity`}>
-      <text x="70" y={trackTop + 4} fontFamily="var(--font-mono)" fontSize="11" fill="var(--ink-muted)">100</text>
-      <text x="70" y={trackBottom + 4} fontFamily="var(--font-mono)" fontSize="11" fill="var(--ink-muted)">0</text>
 
-      <rect x="30" y={trackTop} width="16" height={trackHeight} rx="8" fill="var(--surface-sunken)" stroke="var(--border)" />
-      <rect x="30" y={markerY} width="16" height={trackBottom - markerY} rx="8" fill={color} opacity="0.85" />
+      <text x={tubeX + tubeWidth / 2} y={trackTop - 10} textAnchor="middle"
+        fontFamily="var(--font-mono)" fontSize="14" fontWeight="700" fill="var(--ink-muted)">100</text>
+      <text x={tubeX + tubeWidth / 2} y={bulbCy - bulbR - 10} textAnchor="middle"
+        fontFamily="var(--font-mono)" fontSize="14" fontWeight="700" fill="var(--ink-muted)">0</text>
 
-      <line x1="22" x2="54" y1={y(P25)} y2={y(P25)} stroke="var(--ink-faint)" strokeDasharray="2 2" />
-      <text x="60" y={y(P25) + 4} fontFamily="var(--font-mono)" fontSize="11" fill="var(--ink-muted)">P25 · {P25}</text>
+      {/* tube background */}
+      <rect x={tubeX} y={trackTop} width={tubeWidth} height={trackHeight} rx={tubeWidth / 2}
+        fill="var(--surface-sunken)" stroke="var(--border)" strokeWidth="1.5" />
 
-      <line x1="22" x2="54" y1={y(P75)} y2={y(P75)} stroke="var(--ink-faint)" strokeDasharray="2 2" />
-      <text x="60" y={y(P75) + 4} fontFamily="var(--font-mono)" fontSize="11" fill="var(--ink-muted)">P75 · {P75}</text>
+      {/* mercury fill */}
+      <rect x={tubeX} y={markerY} width={tubeWidth} height={trackBottom - markerY} rx={tubeWidth / 2}
+        fill={color} opacity="0.9" />
 
-      <circle cx="38" cy="232" r="15" fill={color} />
-      <circle cx="38" cy="232" r="15" fill="none" stroke="var(--border)" />
+      {/* P25 / P75 reference lines */}
+      <line x1={tubeX - 10} x2={tubeX + tubeWidth + 10} y1={y(P25)} y2={y(P25)}
+        stroke="var(--ink-faint)" strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x={tubeX + tubeWidth + 16} y={y(P25) + 5} fontFamily="var(--font-mono)"
+        fontSize="13" fontWeight="600" fill="var(--ink-muted)">P25 · {P25}</text>
 
-      <circle cx="38" cy={markerY} r="5" fill="var(--surface)" stroke={color} strokeWidth="3" />
-      <text x="60" y={markerY + 4} fontFamily="var(--font-mono)" fontSize="12" fontWeight="600" fill={color}>
-        {score != null ? score.toFixed(1) : "—"}
-      </text>
+      <line x1={tubeX - 10} x2={tubeX + tubeWidth + 10} y1={y(P75)} y2={y(P75)}
+        stroke="var(--ink-faint)" strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x={tubeX + tubeWidth + 16} y={y(P75) + 5} fontFamily="var(--font-mono)"
+        fontSize="13" fontWeight="600" fill="var(--ink-muted)">P75 · {P75}</text>
+
+      {/* bulb */}
+      <circle cx={bulbCx} cy={bulbCy} r={bulbR} fill={color} />
+      <circle cx={bulbCx} cy={bulbCy} r={bulbR} fill="none" stroke="var(--border)" strokeWidth="1.5" />
+
+      {/* marker on the tube at the current score */}
+      <circle cx={bulbCx} cy={markerY} r="7" fill="var(--surface)" stroke={color} strokeWidth="4" />
     </svg>
   );
 }

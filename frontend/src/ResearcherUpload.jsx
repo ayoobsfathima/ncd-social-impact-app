@@ -117,6 +117,10 @@ export default function ResearcherUpload() {
                 Download scored CSV
               </button>
             </p>
+            <p className="muted small">
+              The download includes <code>Total_Social_Impact</code>, <code>Severity</code>,{" "}
+              <code>Interpretation</code> and <code>Suggested_Action</code> columns for every row.
+            </p>
 
             <h3 className="subhead">Column data-quality summary</h3>
             <table className="domain-table">

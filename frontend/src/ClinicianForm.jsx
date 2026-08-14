@@ -89,11 +89,11 @@ export default function ClinicianForm() {
             <span>Date of birth</span>
             <input
               type="text"
-              placeholder="MM/DD/YYYY"
+              placeholder="DD/MM/YYYY"
               value={dob}
               onChange={(e) => setDob(e.target.value)}
             />
-            <span className="hint">Used only to adjust the reproduction-related item for patients 49+.</span>
+            <span className="hint">DD/MM/YYYY. Used only to adjust the reproduction-related item for patients 49+.</span>
           </label>
 
           <label className="field">
@@ -123,8 +123,14 @@ export default function ClinicianForm() {
           });
           if (domain === "caregiver" && !showCaregiverItems) return null;
           return (
-            <fieldset key={domain} className="domain-group">
+            <fieldset key={domain} className={`domain-group${domain === "caregiver" ? " domain-group-caregiver" : ""}`}>
               <legend>{catalogue.domains[domain]}</legend>
+              {domain === "caregiver" && catalogue.caregiver_domain_notice && (
+                <div className="notice notice-warn caregiver-notice">
+                  <strong>⚠ To be answered by the caregiver</strong>
+                  <p style={{ margin: "4px 0 0" }}>{catalogue.caregiver_domain_notice}</p>
+                </div>
+              )}
               {items.map((it) => (
                 <label className="field" key={it.key}>
                   <span>{it.label}</span>
@@ -170,17 +176,34 @@ export default function ClinicianForm() {
               </div>
             </div>
 
+            {result.interpretation && (
+              <div className="notice notice-info interpretation-box">
+                <strong>{result.category_label}</strong>
+                <p style={{ margin: "6px 0 10px" }}>{result.interpretation}</p>
+                <strong>Suggested action</strong>
+                <p style={{ margin: "6px 0 0" }}>{result.suggested_action}</p>
+              </div>
+            )}
+
             <h3 className="subhead">Domain breakdown</h3>
-            <table className="domain-table">
-              <tbody>
-                {Object.entries(result.domain_scores).map(([d, v]) => (
-                  <tr key={d}>
-                    <td>{catalogue.domains[d]}</td>
-                    <td className="mono">{v.toFixed(1)}</td>
-                  </tr>
+            <p className="muted small" style={{ margin: "-4px 0 12px" }}>
+              Each domain is scored independently on a 0–100 scale. They're combined
+              with different weights to produce the total score above, so they won't
+              add up to it — this just shows which areas are contributing most.
+            </p>
+            <div className="domain-bars">
+              {Object.entries(result.domain_scores)
+                .sort((a, b) => b[1] - a[1])
+                .map(([d, v]) => (
+                  <div className="domain-bar-row" key={d}>
+                    <span className="domain-bar-label">{catalogue.domains[d]}</span>
+                    <div className="domain-bar-track">
+                      <div className="domain-bar-fill" style={{ width: `${Math.max(0, Math.min(100, v))}%` }} />
+                    </div>
+                    <span className="domain-bar-value mono">{v.toFixed(1)}</span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+            </div>
 
             {result.notes.length > 0 && (
               <div className="notice notice-info">
