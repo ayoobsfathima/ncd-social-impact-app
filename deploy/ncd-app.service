@@ -7,7 +7,7 @@ Type=simple
 User=datascience
 Group=datascience
 WorkingDirectory=/home/datascience/NCD_SocialImpact/backend
-ExecStart=/home/datascience/NCD_SocialImpact/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8095
+ExecStart=/home/datascience/NCD_SocialImpact/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8095 --root-path /NCD
 Restart=on-failure
 RestartSec=5
 
